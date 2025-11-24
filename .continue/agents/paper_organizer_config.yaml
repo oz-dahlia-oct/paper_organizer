@@ -1,0 +1,51 @@
+name: PaperOrganizer
+version: 1.0.0
+schema: v1
+models: 
+  - name: Qwen3-Coder-30B
+    provider: ollama
+    model: qwen3-coder:30b
+    apiBase: http://localhost:11434
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 16000
+      temperature: 0.2
+    capabilities: 
+      - tool_use
+
+  - name: Qwen2.5-Coder 3B
+    provider: ollama
+    model: qwen2.5-coder:3b
+    apiBase: http://localhost:11434
+    roles:
+      - autocomplete
+    autocompleteOptions:
+      maxPromptTokens: 1024
+      debounceDelay: 200
+
+  - name: Devstral Small
+    provider: ollama
+    model: devstral
+    apiBase: http://localhost:11434
+    roles: 
+      - chat
+      - edit
+      - apply
+    capabilities: 
+      - tool_use
+      
+context:
+  - provider: file
+  - provider: code
+  - provider: docs
+  - provider: diff
+  - provider: folder
+  - provider: terminal
+  - provider: tree
+
+rules:
+  - Pythonでコーディングする場合は、PEP8のスタイルガイドに従う
+  - Pythonでコーディングする場合は、Numpy記法で日本語のdocstringを書く
