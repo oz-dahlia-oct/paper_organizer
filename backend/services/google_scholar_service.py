@@ -1,13 +1,15 @@
 import time
 import re
+import json
 
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.chrome.service import Service
 from bs4 import BeautifulSoup
+import ollama
 
-# from webdriver_manager.chrome import ChromeDriverManager
+import backend.models.document as document
 
 # ChromeDriver を自動ダウンロードして起動
 
@@ -30,13 +32,13 @@ def search(query, start: int, driver=None, quit=False, save_html_path=None):
     if quit:
         driver.quit()
         driver = None
-    
+
     result = []
     for card in article_list:
         # タイトルとリンク
         title_tag = card.select_one("h3.gs_rt a")
         title = title_tag.get_text().strip() if title_tag else None
-        url = title_tag.get("href") if title_tag  else None
+        url = title_tag.get("href") if title_tag else None
 
         # 種別 [PDF] [書籍] など（あれば）
         kind_tag = card.select_one("h3.gs_rt span.gs_ctc span.gs_ct1")
@@ -89,16 +91,45 @@ def search(query, start: int, driver=None, quit=False, save_html_path=None):
                     pdf_url = href
                     break
 
-        result.append({
-            "title": title,
-            "url": url,
-            "pdf_url": pdf_url,
-            "summary": snippet,
-            "cited": cited,
-            "authors": authors,
-            "year": year,
-            "jarnal": jarnal,
-            "meta": raw_meta,
-        })
+        result.append(
+            {
+                "title": title,
+                "url": url,
+                "pdf_url": pdf_url,
+                "summary": snippet,
+                "cited": cited,
+                "authors": authors,
+                "year": year,
+                "jarnal": jarnal,
+                "meta": raw_meta,
+            }
+        )
 
     return driver, page_source, article_list, result
+
+
+def translate_paper_title(raw_papers, model: str = "gpt-oss:120b", retry_count=3):
+    system_prompt = """
+    You are a translator who translates academic papers into Japanese.
+    Translate the following titles and summaries of academic papers into Japanese.:
+    """
+    schema = document.TranslatedPapers.model_json_schema()
+    for _ in range(retry_count):
+        try:
+            result = ollama.chat(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": raw_papers},
+                ],
+                format=schema,
+                stream=False,
+            )
+
+            data = json.loads(result["message"]["content"])
+            document.TranslatedPapers.model_validate(data)
+            break
+        except:
+            continue
+
+    return data
