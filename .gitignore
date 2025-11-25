@@ -208,3 +208,9 @@ __marimo__/
 
 # Node
 frontend/node_modules/
+
+# Jupyter
+*.ipynb
+
+# Tmpy files
+tmp/*
